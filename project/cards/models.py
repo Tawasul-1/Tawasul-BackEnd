@@ -16,7 +16,6 @@ class Card(models.Model):
     title_ar = models.CharField(max_length=255)
     audio_en = models.FileField(upload_to='audio/', blank=True, null=True)
     audio_ar = models.FileField(upload_to='audio/', blank=True, null=True)
-    # category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='cards')
 
 
     def __str__(self):
@@ -39,3 +38,4 @@ class Card(models.Model):
 
         super().save(update_fields=['audio_ar', 'audio_en'])
 
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='cards')
