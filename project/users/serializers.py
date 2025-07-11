@@ -52,7 +52,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "first_name", "last_name", "profile_picture", "bio", "address", "birth_date", "phone", "account_type", "is_premium"]
+        fields = ["id", "username", "email", "first_name", "last_name", "profile_picture", "address", "birth_date", "phone", "account_type", "is_premium"]
         read_only_fields = ["id", "username", "email", "account_type", "is_premium"]
 
     def get_is_premium(self, obj):
@@ -61,7 +61,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "profile_picture", "bio", "address", "birth_date", "phone"]
+        fields = ["first_name", "last_name", "profile_picture", "address", "birth_date", "phone"]
         read_only_fields = ["email"]
 
     def validate_phone(self, value):
