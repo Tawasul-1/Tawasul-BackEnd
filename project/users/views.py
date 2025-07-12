@@ -12,11 +12,14 @@ from .models import User
 from .utiles import send_activation_email, send_password_reset_email
 from .serializers import RegisterSerializer, LoginSerializer, UserProfileSerializer, UserUpdateSerializer
 from users.permissions import IsFreeTrialValid
+from cards.utils import create_board_with_initial_cards
+
 
 class RegisterView(CreateAPIView):
     serializer_class = RegisterSerializer
     def perform_create(self, serializer):
         user = serializer.save()
+        create_board_with_initial_cards(user)
         send_activation_email(user, self.request)
 
 

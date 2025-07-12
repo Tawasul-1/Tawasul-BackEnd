@@ -2,20 +2,24 @@ from django.db import models
 from django.db import models
 from gtts import gTTS
 
+from users.models import User
+
 
 class Category(models.Model):
-    name_en = models.CharField(max_length=255)
-    name_ar = models.CharField(max_length=255)
+    name_en = models.CharField(max_length=255,unique=True)
+    name_ar = models.CharField(max_length=255,unique=True)
 
     def __str__(self):
         return self.name_en
 
 class Card(models.Model):
     image = models.ImageField(upload_to='cards/')
-    title_en = models.CharField(max_length=255)
-    title_ar = models.CharField(max_length=255)
+    title_en = models.CharField(max_length=255, unique=True)
+    title_ar = models.CharField(max_length=255, unique=True)
     audio_en = models.FileField(upload_to='audio/', blank=True, null=True)
     audio_ar = models.FileField(upload_to='audio/', blank=True, null=True)
+
+    is_default = models.BooleanField(default=False)  
 
 
     def __str__(self):
@@ -39,3 +43,11 @@ class Card(models.Model):
         super().save(update_fields=['audio_ar', 'audio_en'])
 
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='cards')
+
+
+class Board(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='board')
+    cards = models.ManyToManyField(Card, related_name='boards', blank=True)
+
+    def __str__(self):
+        return f"{self.user.username}'s Board"
