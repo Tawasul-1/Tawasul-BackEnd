@@ -1,3 +1,4 @@
+import random
 from rest_framework import viewsets, generics, permissions, status, filters
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -108,4 +109,46 @@ def board_with_categories(request):
     return Response({
         "cards": CardSerializer(cards, many=True).data,
         "categories": CategorySerializer(categories, many=True).data
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def test_card(request):
+    """
+    Test a card by returning a shuffled list of cards from the same category 
+    at the specified difficulty level.
+    """
+    card_id = request.data.get('card_id')
+    level = int(request.data.get('level', 1))
+
+    if not card_id:
+        return Response({"status": False, "error": "Please provide card_id."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        target_card = Card.objects.get(id=card_id)
+    except Card.DoesNotExist:
+        return Response({"status": False, "error": "Card not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    category_cards = list(
+        Card.objects.filter(category=target_card.category).exclude(id=target_card.id)
+    )
+
+    total_cards = min(level + 1, len(category_cards) + 1)  
+
+    result_cards = [target_card]
+
+    needed_distractors = total_cards - 1
+    if needed_distractors > 0:
+        if len(category_cards) < needed_distractors:
+            distractors = category_cards  
+        else:
+            distractors = random.sample(category_cards, needed_distractors)
+        result_cards.extend(distractors)
+
+    random.shuffle(result_cards)
+
+    return Response({
+        "status": True,
+        "cards": CardSerializer(result_cards, many=True).data
     }, status=status.HTTP_200_OK)
