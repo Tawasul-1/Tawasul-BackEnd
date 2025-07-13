@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
+from django.utils.timezone import now
 
 PHONE_REGEX = RegexValidator(regex=r'^01[0125][0-9]{8}$')
 
@@ -38,7 +39,7 @@ class User(AbstractUser):
     def is_premium(self):
         if self.account_type == 'premium':
             return True
-        return datetime.now().date() < (self.created_at.date() + timedelta(days=60))
+        return now() <= (self.created_at + timedelta(days=60))
 
     def __str__(self):
         return self.username
