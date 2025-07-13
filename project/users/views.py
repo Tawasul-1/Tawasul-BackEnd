@@ -18,11 +18,15 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import requests
 
+from users.permissions import IsFreeTrialValid
+from cards.utils import create_board_with_initial_cards
+
 
 class RegisterView(CreateAPIView):
     serializer_class = RegisterSerializer
     def perform_create(self, serializer):
         user = serializer.save()
+        create_board_with_initial_cards(user)
         send_activation_email(user, self.request)
 
 
