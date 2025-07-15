@@ -9,7 +9,6 @@ from .serializers import CategorySerializer, CardSerializer, BoardSerializer
 from .utils import create_board_with_initial_cards
 from .permissions import IsAdminOrCreateOnly
 
-from rest_framework.pagination import LimitOffsetPagination
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -97,6 +96,7 @@ def remove_card_from_board(request):
 def board_with_categories(request):
     """
     Get the user's board with selected cards + categories of these cards.
+    If category_id is provided, filter cards by that category.
     """
     if not hasattr(request.user, 'board'):
         board = create_board_with_initial_cards(request.user)
@@ -104,6 +104,11 @@ def board_with_categories(request):
         board = request.user.board
 
     cards = board.cards.all()
+
+    category_id = request.GET.get("category_id")
+    if category_id:
+        cards = cards.filter(category_id=category_id)
+
     categories = Category.objects.filter(cards__in=cards).distinct()
 
     return Response({

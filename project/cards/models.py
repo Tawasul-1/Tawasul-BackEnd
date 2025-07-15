@@ -9,6 +9,7 @@ from users.models import User
 
 
 class Category(models.Model):
+    image = models.ImageField(upload_to='cards/')
     name_en = models.CharField(max_length=255,unique=True)
     name_ar = models.CharField(max_length=255,unique=True)
 
