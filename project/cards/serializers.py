@@ -8,7 +8,7 @@ class CategorySerializer(serializers.ModelSerializer):
     """ Serializer for Category model """
     class Meta:
         model = Category
-        fields = ['id', 'name_en', 'name_ar']
+        fields = ['id','image', 'name_en', 'name_ar']
 
 
 class CardSerializer(serializers.ModelSerializer):

@@ -20,7 +20,6 @@ import pandas as pd
 from .utils import load_model
 from datetime import datetime
 
-from rest_framework.pagination import LimitOffsetPagination
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
