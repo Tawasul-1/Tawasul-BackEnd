@@ -42,3 +42,15 @@ def send_password_reset_email(user, request):
     subject = 'Reset your password'
     message = f"Hi {user.username}, reset your password here:\n{reset_url}"
     send_mail(subject, message, 'abdo.moh4443@gmail.com', [user.email])
+
+import joblib
+import os
+from django.conf import settings
+
+MODEL_PATH = os.path.join(settings.BASE_DIR, 'cards', 'ml_models', 'click_model.pkl')
+
+def load_model():
+    if os.path.exists(MODEL_PATH):
+        return joblib.load(MODEL_PATH)
+    else:
+        raise FileNotFoundError(f"Model file not found at {MODEL_PATH}")

@@ -1,6 +1,7 @@
 from django.db import models
 from django.db import models
 from gtts import gTTS
+from datetime import datetime, timedelta, time
 
 from users.models import User
 
@@ -51,3 +52,37 @@ class Board(models.Model):
 
     def __str__(self):
         return f"{self.user.username}'s Board"
+    
+
+class Interaction(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='interactions')
+    card = models.ForeignKey('Card', on_delete=models.CASCADE, related_name='interactions')
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    hour_range_start = models.TimeField()
+    hour_range_end = models.TimeField()
+
+    click_count = models.PositiveIntegerField(help_text="Total number of clicks")
+
+    def save(self, *args, **kwargs):
+        if not self.hour_range_start or not self.hour_range_end:
+            now = datetime.now()
+            hour_start = time(hour=now.hour)
+            hour_end = (datetime.combine(now.date(), hour_start) + timedelta(hours=1)).time()
+
+            self.hour_range_start = hour_start
+            self.hour_range_end = hour_end
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.card.title_en} - {self.click_count} clicks from {self.hour_range_start} to {self.hour_range_end}"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'card', 'hour_range_start'],
+                name='unique_user_card_hour'
+            )
+        ]
+

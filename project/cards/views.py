@@ -3,11 +3,22 @@ from rest_framework import viewsets, generics, permissions, status, filters
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-
-from .models import Category, Card
-from .serializers import CategorySerializer, CardSerializer, BoardSerializer
+from django.conf import settings
+from .models import Category, Card, Interaction
+from .serializers import CategorySerializer, CardSerializer, BoardSerializer, InteractionSerializer
 from .utils import create_board_with_initial_cards
 from .permissions import IsAdminOrCreateOnly
+from django.utils.timezone import now
+import joblib
+import os
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Card
+from .serializers import CardSerializer
+import pandas as pd
+from .utils import load_model
+from datetime import datetime
 
 from rest_framework.pagination import LimitOffsetPagination
 
@@ -92,25 +103,75 @@ def remove_card_from_board(request):
     }, status=status.HTTP_200_OK)
 
 
+
+
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def board_with_categories(request):
-    """
-    Get the user's board with selected cards + categories of these cards.
-    """
-    if not hasattr(request.user, 'board'):
-        board = create_board_with_initial_cards(request.user)
+
+    user = request.user
+
+
+    board = getattr(user, 'board', None) or create_board_with_initial_cards(user)
+    cards = list(board.cards.all())
+    if not cards:
+        return Response({"cards": [], "categories": []}, status=200)
+
+    current_hour = datetime.now().hour
+
+    
+    bundle_path = os.path.join(settings.BASE_DIR, 'cards', 'ml_models', 'click_model.pkl')
+    if not os.path.exists(bundle_path):
+        
+        categories = Category.objects.filter(cards__in=cards).distinct()
+        return Response(
+            {
+                "hour_used": current_hour,
+                "cards": CardSerializer(cards, many=True).data,
+                "categories": CategorySerializer(categories, many=True).data
+            }, status=200
+        )
+
+    bundle = joblib.load(bundle_path)
+    model   = bundle['model']
+    le_user = bundle['le_user']
+    le_card = bundle['le_card']
+
+    
+    try:
+        user_enc = le_user.transform([user.id])[0]
+    except ValueError:
+        user_enc = 0 
+
+    
+    card_preds = []
+    for card in cards:
+        try:
+            card_enc = le_card.transform([card.id])[0]
+        except ValueError:
+            
+            continue
+
+        features = [[user_enc, card_enc, current_hour]]
+        pred = model.predict(features)[0]
+        print(f"[Prediction] Card: {card.title_en} | Encoded ID: {card_enc} | Hour: {current_hour} | Predicted Clicks: {pred:.2f}")
+        card_preds.append((card, pred))
+
+    if not card_preds:
+        cards_sorted = cards
     else:
-        board = request.user.board
+        cards_sorted = [c for c, _ in sorted(card_preds, key=lambda x: x[1], reverse=True)]
 
-    cards = board.cards.all()
-    categories = Category.objects.filter(cards__in=cards).distinct()
+    
+    categories = Category.objects.filter(cards__in=cards_sorted).distinct()
 
-    return Response({
-        "cards": CardSerializer(cards, many=True).data,
-        "categories": CategorySerializer(categories, many=True).data
-    }, status=status.HTTP_200_OK)
-
+    return Response(
+        {
+            "hour_used": current_hour,
+            "cards": CardSerializer(cards_sorted, many=True).data,
+            "categories": CategorySerializer(categories, many=True).data
+        }, status=200
+    )
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
@@ -152,3 +213,17 @@ def test_card(request):
         "status": True,
         "cards": CardSerializer(result_cards, many=True).data
     }, status=status.HTTP_200_OK)
+
+@permission_classes([permissions.IsAuthenticated])
+class InteractionViewSet(viewsets.ModelViewSet):
+    queryset = Interaction.objects.all()
+    serializer_class = InteractionSerializer
+    
+
+    def get_queryset(self):
+        return Interaction.objects.filter(user=self.request.user)
+
+
+
+
+

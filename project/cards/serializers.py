@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from .models import Category, Card, Board
+from cards.models import Category, Card, Board, Interaction
+from users.models import User
+
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -48,3 +50,36 @@ class BoardSerializer(serializers.ModelSerializer):
             instance.cards.set(card_ids)
         instance.save()
         return instance
+    
+class InteractionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Interaction
+        fields = ['id', 'card', 'hour_range_start', 'hour_range_end', 'click_count']
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+
+        
+        validated_data.pop('user', None)
+
+        card = validated_data['card']
+        hour_start = validated_data['hour_range_start']
+        hour_end = validated_data['hour_range_end']
+        click_count = validated_data['click_count']
+
+        interaction, created = Interaction.objects.get_or_create(
+            user=user,
+            card=card,
+            hour_range_start=hour_start,
+            defaults={
+                'hour_range_end': hour_end,
+                'click_count': click_count,
+            }
+        )
+
+        if not created:
+            interaction.click_count += click_count
+            interaction.hour_range_end = hour_end
+            interaction.save()
+
+        return interaction

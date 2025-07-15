@@ -5,6 +5,7 @@ from . import views
 router = DefaultRouter()
 router.register(r'categories', views.CategoryViewSet)
 router.register(r'cards', views.CardViewSet)
+router.register(r'interactions', views.InteractionViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -13,4 +14,5 @@ urlpatterns = [
     path('board/add/', views.add_card_to_board, name='add-card-to-board'),
     path('board/remove/', views.remove_card_from_board, name='remove-card-from-board'),
     path('board/test/', views.test_card, name='test-card'),
+    
 ]
