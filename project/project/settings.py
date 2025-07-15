@@ -14,6 +14,11 @@ from datetime import timedelta
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -171,9 +176,11 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'abdo.moh4443@gmail.com'
-EMAIL_HOST_PASSWORD = 'kguwpamuktxwcxph'
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
-PAYMOB_API_KEY = 'ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2TVRBMU9UYzBNU3dpYm1GdFpTSTZJbWx1YVhScFlXd2lmUS53ZGpBV25KeGpVU2VOenJrNlZXVWt0dlJBaUN6OEp5Z25xbUkzaTZ6TWltbEREdUR1Qm92SFBWbF96MDR0LWxmeHdyN0JJcE5PbVJnaVNGQmoydDZoUQ=='
-PAYMOB_INTEGRATION_ID = 5185465  
-PAYMOB_IFRAME_ID = 939088  
+PAYMOB_API_KEY = os.getenv("PAYMOB_API_KEY")
+PAYMOB_INTEGRATION_ID = int(os.getenv("PAYMOB_INTEGRATION_ID"))
+PAYMOB_IFRAME_ID = int(os.getenv("PAYMOB_IFRAME_ID"))
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

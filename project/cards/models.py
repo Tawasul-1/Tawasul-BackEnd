@@ -1,7 +1,11 @@
+import datetime
+import os
+import time
+from django.conf import settings
 from django.db import models
 from django.db import models
-from gtts import gTTS
-from datetime import datetime, timedelta, time
+import openai
+
 
 from users.models import User
 
@@ -21,6 +25,7 @@ class Card(models.Model):
     audio_ar = models.FileField(upload_to='audio/', blank=True, null=True)
 
     is_default = models.BooleanField(default=False)  
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='cards')
 
 
     def __str__(self):
@@ -29,21 +34,49 @@ class Card(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
 
+        updated = False
+
+        ar_path = f'media/audio/{self.id}_ar.mp3'
+        en_path = f'media/audio/{self.id}_en.mp3'
+
         if not self.audio_ar:
-            ar_path = f'media/audio/{self.id}_ar.mp3'
-            tts_ar = gTTS(text=self.title_ar, lang='ar')
-            tts_ar.save(ar_path)
-            self.audio_ar.name = f'audio/{self.id}_ar.mp3'
+            if self.generate_openai_tts(self.title_ar, 'ar', ar_path):
+                self.audio_ar.name = f'audio/{self.id}_ar.mp3'
+                updated = True
 
         if not self.audio_en:
-            en_path = f'media/audio/{self.id}_en.mp3'
-            tts_en = gTTS(text=self.title_en, lang='en')
-            tts_en.save(en_path)
-            self.audio_en.name = f'audio/{self.id}_en.mp3'
+            if self.generate_openai_tts(self.title_en, 'en', en_path):
+                self.audio_en.name = f'audio/{self.id}_en.mp3'
+                updated = True
 
-        super().save(update_fields=['audio_ar', 'audio_en'])
+        if updated:
+            super().save(update_fields=['audio_ar', 'audio_en'])
 
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='cards')
+    def generate_openai_tts(self, text, lang, save_path):
+        try:
+            openai.api_key = settings.OPENAI_API_KEY
+
+            voice = 'onyx' 
+            if lang == 'ar':
+                voice = 'echo'  
+
+            response = openai.audio.speech.create(
+                model='tts-1',
+                voice=voice,
+                input=text
+            )
+
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+            with open(save_path, 'wb') as f:
+                f.write(response.content)
+
+            return True
+
+        except Exception as e:
+            print(f"Error generating TTS for {lang}: {e}")
+            return False
+
 
 
 class Board(models.Model):
@@ -68,7 +101,7 @@ class Interaction(models.Model):
         if not self.hour_range_start or not self.hour_range_end:
             now = datetime.now()
             hour_start = time(hour=now.hour)
-            hour_end = (datetime.combine(now.date(), hour_start) + timedelta(hours=1)).time()
+            hour_end = (datetime.combine(now.date(), hour_start) + datetime.timedelta(hours=1)).time()
 
             self.hour_range_start = hour_start
             self.hour_range_end = hour_end
