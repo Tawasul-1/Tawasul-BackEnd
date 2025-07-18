@@ -27,6 +27,7 @@ class User(AbstractUser):
     phone = models.CharField(validators=[PHONE_REGEX], max_length=11, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     account_type = models.CharField(max_length=10, choices=ACCOUNT_TYPES, default='free')
+    premium_expiry = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -37,9 +38,17 @@ class User(AbstractUser):
 
     @property
     def is_premium(self):
-        if self.account_type == 'premium':
+        if self.account_type == 'premium' and self.premium_expiry and now() < self.premium_expiry:
             return True
-        return now() <= (self.created_at + timedelta(days=60))
+        return False
+    
+    def save(self, *args, **kwargs):
+        if self.account_type == 'premium' and self.premium_expiry:
+            if now() > self.premium_expiry:
+                self.account_type = 'free'
+        else:
+            self.account_type = 'premium'
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.username

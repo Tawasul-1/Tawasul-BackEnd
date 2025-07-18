@@ -3,6 +3,10 @@ from datetime import datetime, timedelta, timezone
 from django.conf import settings
 from django.core.mail import send_mail
 from django.urls import reverse
+import joblib
+import os
+from django.conf import settings
+from django.utils.timezone import now
 
 def generate_activation_jwt(user):
     payload = {
@@ -43,10 +47,6 @@ def send_password_reset_email(user, request):
     message = f"Hi {user.username}, reset your password here:\n{reset_url}"
     send_mail(subject, message, 'abdo.moh4443@gmail.com', [user.email])
 
-import joblib
-import os
-from django.conf import settings
-
 MODEL_PATH = os.path.join(settings.BASE_DIR, 'cards', 'ml_models', 'click_model.pkl')
 
 def load_model():
@@ -54,3 +54,8 @@ def load_model():
         return joblib.load(MODEL_PATH)
     else:
         raise FileNotFoundError(f"Model file not found at {MODEL_PATH}")
+
+def activate_premium(user):
+    user.account_type = 'premium'
+    user.premium_expiry = now() + timedelta(days=30) 
+    user.save()

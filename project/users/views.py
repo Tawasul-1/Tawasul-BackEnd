@@ -8,7 +8,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from .models import User
-from .utiles import send_activation_email, send_password_reset_email
+from .utiles import send_activation_email, send_password_reset_email ,activate_premium
 from .serializers import RegisterSerializer, LoginSerializer, UserProfileSerializer, UserUpdateSerializer
 from users.permissions import IsFreeTrialValid, IsPremiumUser
 from django.http import HttpResponse
@@ -17,8 +17,6 @@ from django.shortcuts import redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import requests
-
-from users.permissions import IsFreeTrialValid
 from cards.utils import create_board_with_initial_cards
 
 
@@ -128,57 +126,65 @@ class PremiumProtectedView(APIView):
     def get(self, request):
         return Response({"message": "Welcome to the premium content!"}, status=status.HTTP_200_OK)
 
+class PaymobGetPaymentUrlView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        if user.is_premium:
+            return Response({"message": "your account is already premium "}, status=200)
+
+        auth_response = requests.post(
+            "https://accept.paymob.com/api/auth/tokens",
+            json={"api_key": settings.PAYMOB_API_KEY}
+        )
+        token = auth_response.json().get("token")
+
+        order_response = requests.post(
+            "https://accept.paymob.com/api/ecommerce/orders",
+            json={
+                "auth_token": token,
+                "delivery_needed": False,
+                "amount_cents": "100000",
+                "currency": "EGP",
+                "items": [],
+            }
+        )
+        order_id = order_response.json()["id"]
+
+        payment_key_response = requests.post(
+            "https://accept.paymob.com/api/acceptance/payment_keys",
+            json={
+                "auth_token": token,
+                "amount_cents": "100000",
+                "expiration": 3600,
+                "order_id": order_id,
+                "billing_data": {
+                    "apartment": "NA",
+                    "email": user.email,
+                    "floor": "NA",
+                    "first_name": user.first_name or "NA",
+                    "last_name": user.last_name or "NA",
+                    "street": "NA",
+                    "building": "NA",
+                    "phone_number": user.phone or "01234567890",
+                    "city": "Cairo",
+                    "country": "EG",
+                    "state": "Cairo"
+                },
+                "currency": "EGP",
+                "integration_id": settings.PAYMOB_INTEGRATION_ID,
+                "lock_order_when_paid": False,
+                "redirect_url": f"http://localhost:8000/users/payment/success/?email={user.email}&success=true"
+            }
+        )
+        payment_token = payment_key_response.json()["token"]
+
+        iframe_url = f"https://accept.paymob.com/api/acceptance/iframes/{settings.PAYMOB_IFRAME_ID}?payment_token={payment_token}"
+        return Response({"iframe_url": iframe_url})
 
 
-@csrf_exempt
-def paymob_get_payment_url(request):
-    user = User.objects.first() 
-    auth_response = requests.post(
-        "https://accept.paymob.com/api/auth/tokens",
-        json={"api_key": settings.PAYMOB_API_KEY}
-    )
-    token = auth_response.json().get("token")
-    order_response = requests.post(
-        "https://accept.paymob.com/api/ecommerce/orders",
-        json={
-            "auth_token": token,
-            "delivery_needed": False,
-            "amount_cents": "100000",
-            "currency": "EGP",
-            "items": [],
-        }
-    )
-    order_id = order_response.json()["id"]
-    payment_key_response = requests.post(
-        "https://accept.paymob.com/api/acceptance/payment_keys",
-        json={
-            "auth_token": token,
-            "amount_cents": "10000",
-            "expiration": 3600,
-            "order_id": order_id,
-            "billing_data": {
-                "apartment": "NA",
-                "email": user.email,
-                "floor": "NA",
-                "first_name": user.first_name or "NA",
-                "last_name": user.last_name or "NA",
-                "street": "NA",
-                "building": "NA",
-                "phone_number": user.phone or "01234567890",
-                "city": "Cairo",
-                "country": "EG",
-                "state": "Cairo"
-            },
-            "currency": "EGP",
-            "integration_id": settings.PAYMOB_INTEGRATION_ID,
-            "lock_order_when_paid": False,
-            "redirect_url": f"http://localhost:8000/users/payment/success/?email={user.email}&success=true"
-        }
-    )
-    payment_token = payment_key_response.json()["token"]
-
-    iframe_url = f"https://accept.paymob.com/api/acceptance/iframes/{settings.PAYMOB_IFRAME_ID}?payment_token={payment_token}"
-    return JsonResponse({"iframe_url": iframe_url})
 
 def paymob_success_redirect(request):
     success = request.GET.get("success")
@@ -187,9 +193,8 @@ def paymob_success_redirect(request):
     if success == "true" and email:
         try:
             user = User.objects.get(email=email)
-            user.account_type = 'premium'
-            user.save()
-            return HttpResponse(" Your payment was successful and your account has been upgraded to premium.")
+            activate_premium(user) 
+            return HttpResponse("Your payment was successful and your account has been upgraded to premium.")
         except User.DoesNotExist:
-            return HttpResponse("there is no user with this email.")
-    return HttpResponse("there was an error with the payment.")
+            return HttpResponse("There is no user with this email.")
+    return HttpResponse("There was an error with the payment.")
