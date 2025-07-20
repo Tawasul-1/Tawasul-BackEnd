@@ -38,6 +38,16 @@ class CardViewSet(viewsets.ModelViewSet):
     filterset_fields = ['category']
 
 
+    def perform_create(self, serializer):
+        card = serializer.save()
+        if self.request.data.get("is_default") in [True, "true", "True"]:
+            from .models import Board
+            for board in Board.objects.all():
+                board.cards.add(card)
+                board.save()
+
+
+
 class UserBoardView(generics.RetrieveUpdateAPIView):
     serializer_class = BoardSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -68,6 +78,7 @@ def add_card_to_board(request):
         board = request.user.board
 
     board.cards.add(card)
+
 
     return Response({
         "status": True,
