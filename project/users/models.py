@@ -1,7 +1,6 @@
 from django.db import models
 
-# Create your models here.
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
@@ -43,12 +42,18 @@ class User(AbstractUser):
         return False
     
     def save(self, *args, **kwargs):
-        if self.account_type == 'premium' and self.premium_expiry:
-            if now() > self.premium_expiry:
-                self.account_type = 'free'
-        else:
+        if not self.pk:
             self.account_type = 'premium'
+            self.premium_expiry = now() + timedelta(days=30)
+        elif self.account_type == 'premium' and self.premium_expiry and now() > self.premium_expiry:
+            self.account_type = 'free'
+
         super().save(*args, **kwargs)
+    
+    def activate_premium(self):
+        self.account_type = 'premium'
+        self.premium_expiry = now() + timedelta(days=30)
+        self.save()
 
     def __str__(self):
         return self.username

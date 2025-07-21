@@ -18,6 +18,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import requests
 from cards.utils import create_board_with_initial_cards
+from django.urls import reverse
+
 
 
 class RegisterView(CreateAPIView):
