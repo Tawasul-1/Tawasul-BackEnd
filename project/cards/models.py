@@ -27,6 +27,8 @@ class Card(models.Model):
 
     is_default = models.BooleanField(default=False)  
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='cards')
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="cards")
+
 
 
     def __str__(self):
