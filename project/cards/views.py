@@ -4,22 +4,21 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
-from .models import Category, Card, Interaction
+from rest_framework.exceptions import PermissionDenied
+from users.permissions import IsPremiumUser
+from .models import Category, Card, Interaction , Board
 from .serializers import CategorySerializer, CardSerializer, BoardSerializer, InteractionSerializer
 from .utils import create_board_with_initial_cards
 from .permissions import IsAdminOrCreateOnly
 from django.utils.timezone import now
 import joblib
 import os
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
 from .models import Card
 from .serializers import CardSerializer
 import pandas as pd
 from .utils import load_model
 from datetime import datetime
-
+from django.db import models
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -37,6 +36,33 @@ class CardViewSet(viewsets.ModelViewSet):
     search_fields = ['title_en', 'title_ar']
     filterset_fields = ['category']
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff or user.is_superuser:
+            return Card.objects.all()
+        return Card.objects.filter(
+            models.Q(owner=user) | models.Q(owner__isnull=True)
+        )
+
+    def perform_create(self, serializer):
+        user = self.request.user
+
+        if user.is_staff or user.is_superuser:
+            card = serializer.save()
+            if self.request.data.get("is_default") in [True, "true", "True"]:
+                for board in Board.objects.all():
+                    board.cards.add(card)
+                    board.save()
+            return
+
+        if IsPremiumUser().has_permission(self.request, self):
+            card = serializer.save(owner=user)
+            board = user.board
+            board.cards.add(card)
+            return
+
+        raise PermissionDenied("You do not have permission to create a card.")
+
 
 class UserBoardView(generics.RetrieveUpdateAPIView):
     serializer_class = BoardSerializer
@@ -52,15 +78,26 @@ class UserBoardView(generics.RetrieveUpdateAPIView):
 @permission_classes([permissions.IsAuthenticated])
 def add_card_to_board(request):
     """
-    Add a card to the current user's board by title_en or title_ar (partial match)
+    Add a card to the current user's board by title_en or title_ar (partial match).
+    Only allowed for premium users.
     """
+
+    if not IsPremiumUser().has_permission(request, None):
+        raise PermissionDenied("You must be a premium user to add cards to your board.")
+
     title = request.data.get('title')
     if not title:
-        return Response({"status": False, "error": "Please provide card title."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"status": False, "error": "Please provide card title."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     card = Card.objects.filter(title_en__icontains=title).first()
     if not card:
-        return Response({"status": False, "error": "Card not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"status": False, "error": "Card not found."},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     if not hasattr(request.user, 'board'):
         board = create_board_with_initial_cards(request.user)
@@ -79,15 +116,26 @@ def add_card_to_board(request):
 @permission_classes([permissions.IsAuthenticated])
 def remove_card_from_board(request):
     """
-    Remove a card from the current user's board by title_en or title_ar (partial match)
+    Remove a card from the current user's board by title_en or title_ar (partial match).
+    Only allowed for premium users.
     """
+
+    if not IsPremiumUser().has_permission(request, None):
+        raise PermissionDenied("You must be a premium user to remove cards from your board.")
+
     title = request.data.get('title')
     if not title:
-        return Response({"status": False, "error": "Please provide card title."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {"status": False, "error": "Please provide card title."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     card = Card.objects.filter(title_en__icontains=title).first()
     if not card:
-        return Response({"status": False, "error": "Card not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"status": False, "error": "Card not found."},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     if not hasattr(request.user, 'board'):
         board = create_board_with_initial_cards(request.user)
@@ -100,9 +148,6 @@ def remove_card_from_board(request):
         "status": True,
         "message": f"Card '{card.title_en}' removed from board."
     }, status=status.HTTP_200_OK)
-
-
-
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
@@ -191,17 +236,22 @@ def test_card(request):
         return Response({"status": False, "error": "Card not found."}, status=status.HTTP_404_NOT_FOUND)
 
     category_cards = list(
-        Card.objects.filter(category=target_card.category).exclude(id=target_card.id)
+        Card.objects.filter(
+            category=target_card.category
+        )
+        .exclude(id=target_card.id)
+        .filter(
+            models.Q(owner=request.user) | models.Q(owner__isnull=True)
+        )
     )
 
-    total_cards = min(level + 1, len(category_cards) + 1)  
-
+    total_cards = min(level + 1, len(category_cards) + 1)
     result_cards = [target_card]
 
     needed_distractors = total_cards - 1
     if needed_distractors > 0:
-        if len(category_cards) < needed_distractors:
-            distractors = category_cards  
+        if len(category_cards) <= needed_distractors:
+            distractors = category_cards
         else:
             distractors = random.sample(category_cards, needed_distractors)
         result_cards.extend(distractors)
@@ -213,11 +263,11 @@ def test_card(request):
         "cards": CardSerializer(result_cards, many=True).data
     }, status=status.HTTP_200_OK)
 
+
 @permission_classes([permissions.IsAuthenticated])
 class InteractionViewSet(viewsets.ModelViewSet):
     queryset = Interaction.objects.all()
     serializer_class = InteractionSerializer
-    
 
     def get_queryset(self):
         return Interaction.objects.filter(user=self.request.user)
