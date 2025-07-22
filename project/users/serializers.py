@@ -70,6 +70,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         return value
 
 class UserListSerializer(serializers.ModelSerializer):
+    cards_count = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'account_type', 'premium_expiry', 'is_premium']
+        fields = ['id', 'username', 'email', 'account_type', 'premium_expiry', 'is_premium', 'cards_count']
+
+    def get_cards_count(self, user):
+        board = getattr(user, 'board', None)
+        if board:
+            return board.cards.count()
+        return 0
