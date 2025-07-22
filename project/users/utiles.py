@@ -40,11 +40,11 @@ def generate_password_reset_jwt(user):
 
 def send_password_reset_email(user, request):
     token = generate_password_reset_jwt(user)
-    reset_url = request.build_absolute_uri(
-        reverse('reset-password', kwargs={'token': token})
-    )
+    reset_url = f"{settings.TAWASUL_URL}/reset-password/{token}/"
+    
     subject = 'Reset your password'
-    message = f"Hi {user.username}, reset your password here:\n{reset_url}"
+    message = f"Hi {user.username},\n\nReset your password using the link below:\n{reset_url}"
+    
     send_mail(subject, message, 'abdo.moh4443@gmail.com', [user.email])
 
 MODEL_PATH = os.path.join(settings.BASE_DIR, 'cards', 'ml_models', 'click_model.pkl')
