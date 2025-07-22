@@ -187,8 +187,6 @@ class PaymobGetPaymentUrlView(APIView):
         iframe_url = f"https://accept.paymob.com/api/acceptance/iframes/{settings.PAYMOB_IFRAME_ID}?payment_token={payment_token}"
         return Response({"iframe_url": iframe_url})
 
-
-
 def paymob_success_redirect(request):
     success = request.GET.get("success")
     email = request.GET.get("email")
