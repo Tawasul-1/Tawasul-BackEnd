@@ -68,3 +68,8 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         if value:
             RegexValidator(regex=r'^01[0125][0-9]{8}$')(value)
         return value
+
+class UserListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'account_type', 'premium_expiry', 'is_premium']

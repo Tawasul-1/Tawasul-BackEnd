@@ -27,7 +27,7 @@ class User(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     account_type = models.CharField(max_length=10, choices=ACCOUNT_TYPES, default='free')
     premium_expiry = models.DateTimeField(null=True, blank=True)
-
+    is_subscription_cancelled = models.BooleanField(default=False)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
 
@@ -41,12 +41,22 @@ class User(AbstractUser):
             return True
         return False
     
+    def cancel_subscription(self):
+        if self.account_type == 'premium':
+            self.is_subscription_cancelled = True
+            self.save()
+    
     def save(self, *args, **kwargs):
         if not self.pk:
             self.account_type = 'premium'
             self.premium_expiry = now() + timedelta(days=30)
-        elif self.account_type == 'premium' and self.premium_expiry and now() > self.premium_expiry:
+            self.is_subscription_cancelled = False
+
+        if self.premium_expiry and now() > self.premium_expiry:
             self.account_type = 'free'
+            self.is_subscription_cancelled = False
+        else:
+            self.account_type = 'premium'
 
         super().save(*args, **kwargs)
     

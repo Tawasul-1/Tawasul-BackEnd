@@ -1,15 +1,16 @@
+from datetime import timedelta
 import jwt
-from rest_framework.generics import CreateAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import CreateAPIView, RetrieveUpdateAPIView, ListAPIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.views import APIView
 from .models import User
 from .utiles import send_activation_email, send_password_reset_email ,activate_premium
-from .serializers import RegisterSerializer, LoginSerializer, UserProfileSerializer, UserUpdateSerializer
+from .serializers import RegisterSerializer, LoginSerializer, UserListSerializer, UserProfileSerializer, UserUpdateSerializer
 from users.permissions import IsFreeTrialValid, IsPremiumUser
 from django.http import HttpResponse
 from django.conf import settings
@@ -200,3 +201,35 @@ def paymob_success_redirect(request):
         except User.DoesNotExist:
             return HttpResponse("There is no user with this email.")
     return HttpResponse("There was an error with the payment.")
+
+class CancelSubscriptionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        if user.account_type != 'premium':
+            return Response({"message": "your account is on free plan ."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.cancel_subscription()
+        return Response({
+            "message": f"your subscription has been successfully canceled: You will enjoy premium features  until {user.premium_expiry}."
+        }, status=status.HTTP_200_OK)
+
+class SubscriptionStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            "account_type": user.account_type,
+            "is_premium": user.is_premium,
+            "premium_start": (user.premium_expiry - timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S') 
+                              if user.premium_expiry else None,
+            "premium_expiry": user.premium_expiry.strftime('%Y-%m-%d %H:%M:%S') if user.premium_expiry else None,
+            "is_subscription_cancelled": user.is_subscription_cancelled,
+        }, status=status.HTTP_200_OK)
+
+class UserListView(ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserListSerializer
+    permission_classes = [IsAdminUser] 
