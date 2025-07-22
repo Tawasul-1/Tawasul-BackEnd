@@ -195,10 +195,10 @@ def paymob_success_redirect(request):
         try:
             user = User.objects.get(email=email)
             activate_premium(user) 
-            return HttpResponse("Your payment was successful and your account has been upgraded to premium.")
+            return redirect(f"{settings.TAWASUL_URL}/payment/success/?email={user.email}&success=true")
         except User.DoesNotExist:
-            return HttpResponse("There is no user with this email.")
-    return HttpResponse("There was an error with the payment.")
+            return redirect(f"{settings.TAWASUL_URL}/payment/failed/?reson=User not found")
+    return redirect(f"{settings.TAWASUL_URL}/payment/failed/?email={email}&success=false")
 
 class CancelSubscriptionView(APIView):
     permission_classes = [IsAuthenticated]
