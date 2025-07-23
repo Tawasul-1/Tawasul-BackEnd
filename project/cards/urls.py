@@ -1,3 +1,4 @@
+from .views import get_stats
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
@@ -15,4 +16,6 @@ urlpatterns = [
     path('board/remove/', views.remove_card_from_board, name='remove-card-from-board'),
     path('board/test/', views.test_card, name='test-card'),
     path('verify-pin/', views.verify_pin, name='verify-pin'),
+    path('stats/', get_stats, name='get_stats'),
+
 ]

@@ -83,3 +83,9 @@ class InteractionSerializer(serializers.ModelSerializer):
             interaction.save()
 
         return interaction
+
+class StatsSerializer(serializers.Serializer):
+    users_count = serializers.IntegerField()
+    categories_count = serializers.IntegerField()
+    cards_count = serializers.IntegerField()
+    default_board_cards_count = serializers.IntegerField()
