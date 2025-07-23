@@ -2,8 +2,6 @@ import random
 import os
 import joblib
 from datetime import datetime
-from functools import wraps
-from django.shortcuts import redirect
 from django.db import models
 from rest_framework import viewsets, generics, permissions, status, filters
 from rest_framework.decorators import api_view, permission_classes
@@ -12,8 +10,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.conf import settings
 from rest_framework.exceptions import PermissionDenied
 
+from users.models import User
+
 from .models import Category, Card, Interaction, Board
-from .serializers import CategorySerializer, CardSerializer, BoardSerializer, InteractionSerializer
+from .serializers import CategorySerializer, CardSerializer, BoardSerializer, InteractionSerializer, StatsSerializer
 from .utils import create_board_with_initial_cards
 from .permissions import IsAdminOrCreateOnly
 from users.permissions import IsPremiumUser
@@ -237,3 +237,25 @@ class InteractionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Interaction.objects.filter(user=self.request.user)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAdminUser])
+def get_stats(request):
+    """
+    Returns counts of users, categories, cards, and default board cards.
+    """
+    users_count = User.objects.count()
+    categories_count = Category.objects.count()
+    cards_count = Card.objects.count()
+    default_board_cards_count = Board.objects.filter(cards__owner__isnull=True).values('cards').distinct().count()
+
+    data = {
+        'users_count': users_count,
+        'categories_count': categories_count,
+        'cards_count': cards_count,
+        'default_board_cards_count': default_board_cards_count
+    }
+
+    serializer = StatsSerializer(data)
+    return Response(serializer.data)
