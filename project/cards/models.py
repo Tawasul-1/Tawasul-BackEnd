@@ -4,6 +4,7 @@ import time
 from django.conf import settings
 from django.db import models
 from django.db import models
+from gtts import gTTS
 import openai
 
 
@@ -43,44 +44,30 @@ class Card(models.Model):
         en_path = f'media/audio/{self.id}_en.mp3'
 
         if not self.audio_ar:
-            if self.generate_openai_tts(self.title_ar, 'ar', ar_path):
+            if self.generate_tts(self.title_ar, 'ar', ar_path):
                 self.audio_ar.name = f'audio/{self.id}_ar.mp3'
                 updated = True
 
         if not self.audio_en:
-            if self.generate_openai_tts(self.title_en, 'en', en_path):
+            if self.generate_tts(self.title_en, 'en', en_path):
                 self.audio_en.name = f'audio/{self.id}_en.mp3'
                 updated = True
 
         if updated:
             super().save(update_fields=['audio_ar', 'audio_en'])
 
-    def generate_openai_tts(self, text, lang, save_path):
-        try:
-            openai.api_key = settings.OPENAI_API_KEY
+    def generate_tts(self, text, lang, save_path):
+     try:
+        tts = gTTS(text=text, lang=lang)
+        
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        tts.save(save_path)
 
-            voice = 'onyx' 
-            if lang == 'ar':
-                voice = 'echo'  
+        return True
 
-            response = openai.audio.speech.create(
-                model='tts-1',
-                voice=voice,
-                input=text
-            )
-
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-            with open(save_path, 'wb') as f:
-                f.write(response.content)
-
-            return True
-
-        except Exception as e:
-            print(f"Error generating TTS for {lang}: {e}")
-            return False
-
-
+     except Exception as e:
+        print(f"Error generating TTS for {lang}: {e}")
+        return False
 
 class Board(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='board')
