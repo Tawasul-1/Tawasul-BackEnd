@@ -84,11 +84,10 @@ class InteractionSerializer(serializers.ModelSerializer):
 
         return interaction
 class AddCardToBoardSerializer(serializers.Serializer):
-    title = serializers.CharField()
+    id = serializers.IntegerField(required=True)
 
 class RemoveCardFromBoardSerializer(serializers.Serializer):
-    title = serializers.CharField()
-
+    id = serializers.IntegerField(required=True)
 class TestCardSerializer(serializers.Serializer):
     card_id = serializers.IntegerField()
     level = serializers.IntegerField(required=False, default=1)

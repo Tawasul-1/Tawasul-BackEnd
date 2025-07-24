@@ -105,7 +105,6 @@ class UserBoardView(generics.RetrieveUpdateAPIView):
             return create_board_with_initial_cards(self.request.user)
         return self.request.user.board
 
-
 @swagger_auto_schema(
     method='post',
     request_body=AddCardToBoardSerializer,
@@ -115,23 +114,28 @@ class UserBoardView(generics.RetrieveUpdateAPIView):
 @permission_classes([permissions.IsAuthenticated])
 def add_card_to_board(request):
     """
-    Add a card to the current user's board by title_en or title_ar (partial match).
+    Add a card to the current user's board by card ID.
     Only allowed for premium users.
     """
     if not IsPremiumUser().has_permission(request, None):
         raise PermissionDenied("You must be a premium user to add cards to your board.")
-    title = request.data.get('title')
-    if not title:
-        return Response({"status": False, "error": "Please provide card title."}, status=status.HTTP_400_BAD_REQUEST)
-    card = Card.objects.filter(title_en__icontains=title).first()
-    if not card:
+
+    card_id = request.data.get('id')
+    if not card_id:
+        return Response({"status": False, "error": "Please provide card ID."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        card = Card.objects.get(id=card_id)
+    except Card.DoesNotExist:
         return Response({"status": False, "error": "Card not found."}, status=status.HTTP_404_NOT_FOUND)
-    if not hasattr(request.user, 'board'):
+
+    board = getattr(request.user, 'board', None)
+    if not board:
         board = create_board_with_initial_cards(request.user)
-    else:
-        board = request.user.board
+
     board.cards.add(card)
     return Response({"status": True, "message": f"Card '{card.title_en}' added to board."}, status=status.HTTP_200_OK)
+
 
 @swagger_auto_schema(
     method='delete',
@@ -142,21 +146,25 @@ def add_card_to_board(request):
 @permission_classes([permissions.IsAuthenticated])
 def remove_card_from_board(request):
     """
-    Remove a card from the current user's board by title_en or title_ar (partial match).
+    Remove a card from the current user's board by card ID.
     Only allowed for premium users.
     """
     if not IsPremiumUser().has_permission(request, None):
         raise PermissionDenied("You must be a premium user to remove cards from your board.")
-    title = request.data.get('title')
-    if not title:
-        return Response({"status": False, "error": "Please provide card title."}, status=status.HTTP_400_BAD_REQUEST)
-    card = Card.objects.filter(title_en__icontains=title).first()
-    if not card:
+
+    card_id = request.data.get('id')
+    if not card_id:
+        return Response({"status": False, "error": "Please provide card ID."}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        card = Card.objects.get(id=card_id)
+    except Card.DoesNotExist:
         return Response({"status": False, "error": "Card not found."}, status=status.HTTP_404_NOT_FOUND)
-    if not hasattr(request.user, 'board'):
+
+    board = getattr(request.user, 'board', None)
+    if not board:
         board = create_board_with_initial_cards(request.user)
-    else:
-        board = request.user.board
+
     board.cards.remove(card)
     return Response({"status": True, "message": f"Card '{card.title_en}' removed from board."}, status=status.HTTP_200_OK)
 
