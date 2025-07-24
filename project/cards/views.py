@@ -13,7 +13,7 @@ from rest_framework.exceptions import PermissionDenied
 from users.models import User
 
 from .models import Category, Card, Interaction, Board
-from .serializers import AddCardToBoardSerializer, CategorySerializer, CardSerializer, BoardSerializer, InteractionSerializer, RemoveCardFromBoardSerializer, StatsSerializer, TestCardSerializer, VerifyPinSerializer
+from .serializers import AddCardToBoardSerializer, CategorySerializer, CardSerializer, BoardSerializer, CategoryWithCardsSerializer, InteractionSerializer, RemoveCardFromBoardSerializer, StatsSerializer, TestCardSerializer, VerifyPinSerializer
 from .utils import create_board_with_initial_cards
 from .permissions import IsAdminOrCreateOnly
 from users.permissions import IsPremiumUser
@@ -287,4 +287,11 @@ def get_stats(request):
     }
 
     serializer = StatsSerializer(data)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def categories_with_cards(request):
+    categories = Category.objects.prefetch_related('cards').all()
+    serializer = CategoryWithCardsSerializer(categories, many=True)
     return Response(serializer.data)
