@@ -179,6 +179,8 @@ def board_with_categories(request):
     if not os.path.exists(bundle_path):
         categories = Category.objects.filter(cards__in=cards).distinct()
         return Response({
+                "debug_cards": CardSerializer(cards, many=True).data,
+
             "hour_used": current_hour,
             "cards": CardSerializer(cards, many=True).data,
             "categories": CategorySerializer(categories, many=True).data
@@ -191,15 +193,18 @@ def board_with_categories(request):
         user_enc = le_user.transform([user.id])[0]
     except ValueError:
         user_enc = 0
-    card_preds = []
+        card_preds = []
+
     for card in cards:
         try:
             card_enc = le_card.transform([card.id])[0]
+            features = [[user_enc, card_enc, current_hour]]
+            pred = model.predict(features)[0]
         except ValueError:
-            continue
-        features = [[user_enc, card_enc, current_hour]]
-        pred = model.predict(features)[0]
-        card_preds.append((card, pred))
+            print(f"Card ID {card.id} not found in label encoder.")
+            pred = 0
+        card_preds.append((card, pred)) 
+
     if not card_preds:
         cards_sorted = cards
     else:
