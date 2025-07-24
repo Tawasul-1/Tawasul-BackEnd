@@ -11,16 +11,12 @@ from rest_framework.views import APIView
 from .models import User
 from .utiles import send_activation_email, send_password_reset_email ,activate_premium
 from .serializers import RegisterSerializer, LoginSerializer, UserListSerializer, UserProfileSerializer, UserUpdateSerializer
-from users.permissions import IsFreeTrialValid, IsPremiumUser
-from django.http import HttpResponse
+from users.permissions import IsPremiumUser
 from django.conf import settings
 from django.shortcuts import redirect
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 import requests
 from cards.utils import create_board_with_initial_cards
-from django.urls import reverse
-
+from drf_yasg.utils import swagger_auto_schema
 
 
 class RegisterView(CreateAPIView):
@@ -33,7 +29,6 @@ class RegisterView(CreateAPIView):
 
 class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
-    
 
 
 @api_view(['POST'])
@@ -122,7 +117,6 @@ class UserUpdateView(RetrieveUpdateAPIView):
         return self.request.user
 
 
-
 class PremiumProtectedView(APIView):
     permission_classes = [IsAuthenticated,IsPremiumUser ]
 
@@ -195,10 +189,10 @@ def paymob_success_redirect(request):
         try:
             user = User.objects.get(email=email)
             activate_premium(user) 
-            return redirect(f"{settings.TAWASUL_URL}/payment-success/?email={user.email}&success=true")
+            return redirect(f"{settings.TAWASUL_URL}/payment/?email={user.email}&success=true")
         except User.DoesNotExist:
-            return redirect(f"{settings.TAWASUL_URL}/payment-failed/?reson=User not found")
-    return redirect(f"{settings.TAWASUL_URL}/payment-failed/?email={email}&success=false")
+            return redirect(f"{settings.TAWASUL_URL}/payment/?reson=User not found")
+    return redirect(f"{settings.TAWASUL_URL}/payment/?email={email}&success=false")
 
 class CancelSubscriptionView(APIView):
     permission_classes = [IsAuthenticated]
@@ -225,9 +219,10 @@ class SubscriptionStatusView(APIView):
                               if user.premium_expiry else None,
             "premium_expiry": user.premium_expiry.strftime('%Y-%m-%d %H:%M:%S') if user.premium_expiry else None,
             "is_subscription_cancelled": user.is_subscription_cancelled,
-        }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK)  
+
 
 class UserListView(ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserListSerializer
-    permission_classes = [IsAdminUser] 
+    permission_classes = [IsAdminUser]

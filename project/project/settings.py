@@ -52,8 +52,7 @@ INSTALLED_APPS = [
     "corsheaders",
     'django_filters',
     'django_cleanup.apps.CleanupConfig',
-
-
+    'drf_yasg',
 
 ]
 

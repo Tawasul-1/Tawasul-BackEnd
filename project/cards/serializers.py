@@ -83,7 +83,19 @@ class InteractionSerializer(serializers.ModelSerializer):
             interaction.save()
 
         return interaction
+class AddCardToBoardSerializer(serializers.Serializer):
+    title = serializers.CharField()
 
+class RemoveCardFromBoardSerializer(serializers.Serializer):
+    title = serializers.CharField()
+
+class TestCardSerializer(serializers.Serializer):
+    card_id = serializers.IntegerField()
+    level = serializers.IntegerField(required=False, default=1)
+
+class VerifyPinSerializer(serializers.Serializer):
+    pin = serializers.CharField()
+    
 class StatsSerializer(serializers.Serializer):
     users_count = serializers.IntegerField()
     categories_count = serializers.IntegerField()

@@ -13,12 +13,22 @@ from rest_framework.exceptions import PermissionDenied
 from users.models import User
 
 from .models import Category, Card, Interaction, Board
-from .serializers import CategorySerializer, CardSerializer, BoardSerializer, InteractionSerializer, StatsSerializer
+from .serializers import AddCardToBoardSerializer, CategorySerializer, CardSerializer, BoardSerializer, InteractionSerializer, RemoveCardFromBoardSerializer, StatsSerializer, TestCardSerializer, VerifyPinSerializer
 from .utils import create_board_with_initial_cards
 from .permissions import IsAdminOrCreateOnly
 from users.permissions import IsPremiumUser
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
+
+@swagger_auto_schema(
+    method='post',
+    request_body=VerifyPinSerializer,
+    responses={200: openapi.Response("Verification result", examples={
+        "application/json": {"status": True}
+    })}
+)
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def verify_pin(request):
@@ -29,7 +39,6 @@ def verify_pin(request):
     if pin == "2617":
         return Response({"status": True, "message": "PIN verified."})
     return Response({"status": False, "message": "Invalid PIN."}, status=400)
-
 
 class CategoryViewSet(viewsets.ModelViewSet):
     """
@@ -97,6 +106,11 @@ class UserBoardView(generics.RetrieveUpdateAPIView):
         return self.request.user.board
 
 
+@swagger_auto_schema(
+    method='post',
+    request_body=AddCardToBoardSerializer,
+    responses={200: "Card added successfully."}
+)
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def add_card_to_board(request):
@@ -119,7 +133,11 @@ def add_card_to_board(request):
     board.cards.add(card)
     return Response({"status": True, "message": f"Card '{card.title_en}' added to board."}, status=status.HTTP_200_OK)
 
-
+@swagger_auto_schema(
+    method='delete',
+    request_body=RemoveCardFromBoardSerializer,
+    responses={200: "Card removed successfully."}
+)
 @api_view(['DELETE'])
 @permission_classes([permissions.IsAuthenticated])
 def remove_card_from_board(request):
@@ -143,6 +161,7 @@ def remove_card_from_board(request):
     return Response({"status": True, "message": f"Card '{card.title_en}' removed from board."}, status=status.HTTP_200_OK)
 
 
+@swagger_auto_schema(method='get', responses={200: CardSerializer(many=True)})
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def board_with_categories(request):
@@ -193,6 +212,11 @@ def board_with_categories(request):
     }, status=200)
 
 
+@swagger_auto_schema(
+    method='post',
+    request_body=TestCardSerializer,
+    responses={200: "Shuffled list of cards returned."}
+)
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def test_card(request):
@@ -226,19 +250,19 @@ def test_card(request):
     return Response({"status": True, "cards": CardSerializer(result_cards, many=True).data}, status=status.HTTP_200_OK)
 
 
-
-@permission_classes([permissions.IsAuthenticated])
 class InteractionViewSet(viewsets.ModelViewSet):
     """
     ViewSet to log and retrieve user interactions.
     """
     queryset = Interaction.objects.all()
     serializer_class = InteractionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
 
     def get_queryset(self):
         return Interaction.objects.filter(user=self.request.user)
 
-
+@swagger_auto_schema(method='get', responses={200: CardSerializer(many=True)})
 @api_view(['GET'])
 @permission_classes([permissions.IsAdminUser])
 def get_stats(request):
