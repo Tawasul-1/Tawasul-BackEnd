@@ -185,4 +185,4 @@ PAYMOB_IFRAME_ID = int(os.getenv("PAYMOB_IFRAME_ID"))
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
-TAWASUL_URL = os.getenv('TAWASUL_URL')
+TAWASUL_URL = os.getenv('TAWASUL_URL', 'http://localhost:5173')
