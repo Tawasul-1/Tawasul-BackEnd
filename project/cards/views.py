@@ -306,5 +306,5 @@ def get_default_cards(request):
     Get all default cards (those marked with is_default=True).
     """
     default_cards = Card.objects.filter(is_default=True)
-    serializer = CardSerializer(default_cards, many=True)
+    serializer = CardSerializer(default_cards, many=True, context={'request': request})
     return Response({"cards": serializer.data}, status=status.HTTP_200_OK)
