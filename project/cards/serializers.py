@@ -25,7 +25,7 @@ class CardSerializer(serializers.ModelSerializer):
         model = Card
         fields = [
             'id','image','title_en','title_ar','audio_en',
-            'audio_ar','category','category_id'    
+            'audio_ar','category','category_id','is_default'     
         ]
 
 

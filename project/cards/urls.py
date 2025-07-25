@@ -16,5 +16,5 @@ urlpatterns = [
     path('board/test/', views.test_card, name='test-card'),
     path('verify-pin/', views.verify_pin, name='verify-pin'),
     path('stats/', get_stats, name='get_stats'),
-    path('cards/default/', get_default_cards, name='default-cards'),
+    path('default/', get_default_cards, name='default-cards'),
 ]

@@ -275,7 +275,7 @@ class InteractionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Interaction.objects.filter(user=self.request.user)
 
-@swagger_auto_schema(method='get', responses={200: CardSerializer(many=True)})
+@swagger_auto_schema(method='get', responses={200: StatsSerializer})
 @api_view(['GET'])
 @permission_classes([permissions.IsAdminUser])
 def get_stats(request):
@@ -285,7 +285,7 @@ def get_stats(request):
     users_count = User.objects.count()
     categories_count = Category.objects.count()
     cards_count = Card.objects.count()
-    default_board_cards_count = Board.objects.filter(cards__owner__isnull=True).values('cards').distinct().count()
+    default_board_cards_count = Card.objects.filter(is_default=True).count()
 
     data = {
         'users_count': users_count,
@@ -296,6 +296,7 @@ def get_stats(request):
 
     serializer = StatsSerializer(data)
     return Response(serializer.data)
+
 
 @swagger_auto_schema(method='get', responses={200: CardSerializer(many=True)})
 @api_view(['GET'])
