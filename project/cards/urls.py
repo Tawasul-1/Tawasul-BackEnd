@@ -17,4 +17,5 @@ urlpatterns = [
     path('verify-pin/', views.verify_pin, name='verify-pin'),
     path('stats/', get_stats, name='get_stats'),
     path('categories-with-cards/', categories_with_cards, name='categories-with-cards'),
+    path('board/test_with_path/', views.test2_card, name='test2-card')
 ]

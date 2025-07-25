@@ -303,3 +303,48 @@ def categories_with_cards(request):
     categories = Category.objects.prefetch_related('cards').all()
     serializer = CategoryWithCardsSerializer(categories, many=True)
     return Response(serializer.data)
+
+def test2_card(request):
+    """
+    Test a card by returning a shuffled list of cards from the same category
+    at the specified difficulty level.
+    """
+    card_id = request.data.get('card_id') or request.query_params.get('card_id')
+    level = int(request.data.get('level') or request.query_params.get('level', 1))
+
+    if not card_id:
+        return Response(
+            {"status": False, "error": "Please provide card_id."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        target_card = Card.objects.get(id=card_id)
+    except Card.DoesNotExist:
+        return Response(
+            {"status": False, "error": "Card not found."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    category_cards = list(
+        Card.objects.filter(category=target_card.category)
+        .exclude(id=target_card.id)
+        .filter(models.Q(owner=request.user) | models.Q(owner__isnull=True))
+    )
+
+    total_cards = min(level + 1, len(category_cards) + 1)
+    result_cards = [target_card]
+    needed_distractors = total_cards - 1
+
+    if needed_distractors > 0:
+        if len(category_cards) <= needed_distractors:
+            distractors = category_cards
+        else:
+            distractors = random.sample(category_cards, needed_distractors)
+        result_cards.extend(distractors)
+
+    random.shuffle(result_cards)
+
+    # مرر request في context عشان يرجع المسارات كاملة
+    serializer = CardSerializer(result_cards, many=True, context={'request': request})
+    return Response({"status": True, "cards": serializer.data}, status=status.HTTP_200_OK)
