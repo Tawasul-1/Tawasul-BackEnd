@@ -40,7 +40,7 @@ def generate_password_reset_jwt(user):
 
 def send_password_reset_email(user, request):
     token = generate_password_reset_jwt(user)
-    reset_url = f"{settings.TAWASUL_URL}/new_password/{token}/"
+    reset_url = f"{settings.TAWASUL_URL}/new-password/{token}/"
     
     subject = 'Reset your password'
     message = f"Hi {user.username},\n\nReset your password using the link below:\n{reset_url}"
