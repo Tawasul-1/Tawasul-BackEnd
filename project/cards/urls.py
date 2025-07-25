@@ -1,4 +1,4 @@
-from .views import  get_default_cards, get_stats
+from .views import  InteractionViewSet, get_default_cards, get_stats
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
@@ -6,6 +6,8 @@ from . import views
 router = DefaultRouter()
 router.register(r'categories', views.CategoryViewSet ,basename='category')
 router.register(r'cards', views.CardViewSet, basename='cards')
+router.register(r'interactions', InteractionViewSet, basename='interactions')
+
 
 urlpatterns = [
     path('', include(router.urls)),
