@@ -1,4 +1,4 @@
-from .views import categories_with_cards, get_stats
+from .views import  get_default_cards, get_stats
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
@@ -16,5 +16,5 @@ urlpatterns = [
     path('board/test/', views.test_card, name='test-card'),
     path('verify-pin/', views.verify_pin, name='verify-pin'),
     path('stats/', get_stats, name='get_stats'),
-    path('categories-with-cards/', categories_with_cards, name='categories-with-cards'),
+    path('cards/default/', get_default_cards, name='default-cards'),
 ]

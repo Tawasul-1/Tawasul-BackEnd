@@ -102,17 +102,4 @@ class StatsSerializer(serializers.Serializer):
     default_board_cards_count = serializers.IntegerField()
     
     
-class CardSimpleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Card
-        fields = [
-            'id', 'image', 'title_en', 'title_ar',
-            'audio_en', 'audio_ar'
-        ]
-        
-class CategoryWithCardsSerializer(serializers.ModelSerializer):
-    cards = CardSimpleSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Category
-        fields = ['id', 'image', 'name_en', 'name_ar', 'cards']
+    
