@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>تفعيل الحساب - تواصل</title>
+</head>
+<body>
+    <h2>مرحبًا {{ user.first_name }}!</h2>
+    <p>شكرًا لانضمامك إلى <strong>تواصل</strong>.</p>
+    <p>لتفعيل حسابك، يرجى الضغط على الزر أدناه:</p>
+
+    <p style="text-align: center;">
+        <a href="{{ activation_url }}" style="background-color: #1d72b8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">تفعيل الحساب</a>
+    </p>
+
+    <p>صلاحية رابط التفعيل: {{ expiry_hours }} ساعة.</p>
+    <p>إذا لم تقم بإنشاء هذا الحساب، يمكنك تجاهل هذه الرسالة.</p>
+    <hr>
+    <p>للمساعدة، تواصل معنا عبر <a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+</body>
+</html>
